@@ -20,4 +20,21 @@ jobs:
             cd /var/www/mysite
             git pull origin main                
             sudo nginx -t                       
-            sudo systemctl reload nginx 
+            sudo systemctl reload nginx
+            curl -sS -X POST "${{ secrets.WEB_HOOK_URL }}" \
+            -H "Content-Type: application/json" \
+            -d '{
+              "type": "message",
+              "attachments": [{
+                "contentType": "application/vnd.microsoft.card.adaptive",
+                "content": {
+                  "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+                  "type": "AdaptiveCard",
+                  "version": "1.4",
+                  "body": [
+                    {"type": "TextBlock", "text": "🚨 서버 알림", "size": "Large", "weight": "Bolder"},
+                    {"type": "TextBlock", "text": "백업 작업이 완료되었습니다.", "wrap": true}
+                  ]
+                }
+              }]
+            }'
