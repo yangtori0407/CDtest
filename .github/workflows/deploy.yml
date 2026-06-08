@@ -21,20 +21,46 @@ jobs:
             git pull origin main                
             sudo nginx -t                       
             sudo systemctl reload nginx
-            curl -sS -X POST "${{ secrets.WEB_HOOK_URL }}" \
+      - name: 배포 성공 알림
+        if: success()
+        run: |
+          curl -sS -X POST "$WEBHOOK_URL" \
             -H "Content-Type: application/json" \
             -d '{
               "type": "message",
               "attachments": [{
                 "contentType": "application/vnd.microsoft.card.adaptive",
                 "content": {
-                  "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
                   "type": "AdaptiveCard",
                   "version": "1.4",
                   "body": [
-                    {"type": "TextBlock", "text": "🚨 서버 알림", "size": "Large", "weight": "Bolder"},
-                    {"type": "TextBlock", "text": "백업 작업이 완료되었습니다.", "wrap": true}
+                    {"type": "TextBlock", "text": "✅ 배포 성공", "size": "Large", "weight": "Bolder"},
+                    {"type": "TextBlock", "text": "'"${GITHUB_REPOSITORY}"' main 브랜치가 배포되었습니다. (커밋: '"${GITHUB_SHA::7}"')", "wrap": true}
                   ]
                 }
               }]
             }'
+        env:
+          WEBHOOK_URL: ${{ secrets.WEB_HOOK_URL }}
+
+      - name: 배포 실패 알림
+        if: failure()
+        run: |
+          curl -sS -X POST "$WEBHOOK_URL" \
+            -H "Content-Type: application/json" \
+            -d '{
+              "type": "message",
+              "attachments": [{
+                "contentType": "application/vnd.microsoft.card.adaptive",
+                "content": {
+                  "type": "AdaptiveCard",
+                  "version": "1.4",
+                  "body": [
+                    {"type": "TextBlock", "text": "❌ 배포 실패", "size": "Large", "weight": "Bolder", "color": "Attention"},
+                    {"type": "TextBlock", "text": "로그 확인: https://github.com/'"${GITHUB_REPOSITORY}"'/actions/runs/'"${GITHUB_RUN_ID}"'", "wrap": true}
+                  ]
+                }
+              }]
+            }'
+        env:
+          WEBHOOK_URL: ${{ secrets.WEB_HOOK_URL }}
